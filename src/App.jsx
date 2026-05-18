@@ -84,6 +84,26 @@ const PLANNING_SYSTEM = `Ты — контент-директор Валерии
 Формат ответа — только JSON без пояснений:
 {"monday":["тема1","тема2"],"tuesday":["тема1","тема2"],"wednesday":["тема1","тема2"],"thursday":["тема1","тема2"],"friday":["тема1","тема2"]}`;
 
+const WEEK_AI_SYSTEM = `Ты — контент-директор Валерии Салтыковой (AI Авитолог PRO, @traffic_agency_formula).
+Составь план на 5 дней. Фокус: продвижение AI Авитолог PRO через пользу.
+Форматы по дням:
+ПН: мини-кейс с поля / демо сервиса / паттерн из практики
+ВТ: разбор ошибки в объявлении
+СР: опрос или спорное утверждение (развлекательный)
+ЧТ: «Мне часто пишут:» — ответ на частый вопрос с CTA на сервис
+ПТ: личное или скриншот из кабинета Авито Pro
+
+Верни ТОЛЬКО JSON без пояснений:
+{"monday":{"format":"ПН-2 / Мини-кейс","topic":"конкретная тема-хук","hook":"первая строка поста","cmd":"напиши пост: "},"tuesday":{"format":"ВТ / Разбор ошибки","topic":"...","hook":"...","cmd":"разбор объявления: "},"wednesday":{"format":"СР / Опрос","topic":"...","hook":"...","cmd":"напиши пост: "},"thursday":{"format":"ЧТ / Мне часто пишут","topic":"...","hook":"...","cmd":"мне часто пишут: "},"friday":{"format":"ПТ / Личное","topic":"...","hook":"...","cmd":"напиши личный пост: "}}`;
+
+const DAY_LABELS = {
+  monday: "ПН", tuesday: "ВТ", wednesday: "СР", thursday: "ЧТ", friday: "ПТ"
+};
+const DAY_COLORS = {
+  monday: "#8B5CF6", tuesday: "#2AABEE", wednesday: "#F59E0B",
+  thursday: "#10B981", friday: "#EF4444"
+};
+
 const PLATFORMS = [
   { id: "tg", name: "Telegram", color: "#2AABEE", format: "1280×720px (горизонтальный)", prompt: `Адаптируй для Telegram-канала. Хук в первых 2 строках. Эмодзи как маркеры: ➡️ 📌 ⚡️ 💜. В конце вопрос к аудитории + хэштеги #авито #авитолог #трафик. Подпись: 💜Подпишись на канал AI Авитолог | Валерия Салтыкова` },
   { id: "vk", name: "ВКонтакте", color: "#4C75A3", format: "1080×607px (горизонтальный)", prompt: `Адаптируй для ВКонтакте. Короткий формат 10-20 строк. Меньше эмодзи. CTA: Подписывайтесь на страницу. 3-5 хэштегов: #авито #авитопродвижение #малыйбизнес` },
@@ -220,7 +240,40 @@ export default function App() {
   const [planSugs, setPlanSugs] = useState({});
   const [planLoading, setPlanLoading] = useState(false);
   const [planSaved, setPlanSaved] = useState(false);
+  const [aiWeekPlan, setAiWeekPlan] = useState(null);
+  const [aiPlanLoading, setAiPlanLoading] = useState(false);
   const topic = customTopic || selTopic;
+
+  // Открываем бота с темой
+  function openBotWithTopic(cmd, topic) {
+    const msg = encodeURIComponent(cmd + topic);
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.openTelegramLink(`https://t.me/avitolog_coach_bot?start=plan`);
+    }
+  }
+
+  async function generateAiWeekPlan() {
+    setAiPlanLoading(true);
+    setAiWeekPlan(null);
+    try {
+      const weekNum = Math.ceil(new Date().getDate() / 7);
+      const isOdd = weekNum % 2 !== 0;
+      const prompt = `Неделя ${weekNum} месяца. Среда: ${isOdd ? "опрос" : "спорное утверждение"}. Пятница: ${isOdd ? "личный пост" : "скриншот цифр"}. Составь план.`;
+      const raw = await callClaude(WEEK_AI_SYSTEM, prompt);
+      const json = raw.match(/\{[\s\S]*\}/)?.[0];
+      if (json) {
+        const plan = JSON.parse(json);
+        setAiWeekPlan(plan);
+        // Сохраняем в Redis для синхронизации с ботом
+        if (tgUserId) {
+          const topics = {};
+          Object.entries(plan).forEach(([day, v]) => { topics[DAY_KEYS[{monday:1,tuesday:2,wednesday:3,thursday:4,friday:5}[day]] || day] = v.topic; });
+          await syncPost(tgUserId, "weekPlan", topics);
+        }
+      }
+    } catch(e) { console.error(e); }
+    setAiPlanLoading(false);
+  }
 
   const [botIdeas, setBotIdeas] = useState([]);
 
@@ -418,7 +471,39 @@ export default function App() {
           ) : (
             <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:16,padding:20}}>
               <div style={{fontSize:10,letterSpacing:2,color:MUTED,fontWeight:700,marginBottom:4}}>КОНТЕНТ-ДИРЕКТОР</div>
-              <div style={{fontSize:17,fontWeight:700,marginBottom:16}}>План на неделю</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                <div style={{fontSize:17,fontWeight:700}}>План на неделю</div>
+                <button onClick={generateAiWeekPlan} disabled={aiPlanLoading}
+                  style={{padding:"8px 14px",background:BRAND,color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:aiPlanLoading?"default":"pointer",opacity:aiPlanLoading?0.6:1}}>
+                  {aiPlanLoading ? "⏳ Генерирую..." : "🤖 AI-план"}
+                </button>
+              </div>
+
+              {aiWeekPlan && (
+                <div style={{marginBottom:20}}>
+                  <div style={{fontSize:10,letterSpacing:2,color:BRAND,fontWeight:700,marginBottom:10}}>AI СГЕНЕРИРОВАЛ — НАЖМИ «НАПИСАТЬ» ЧТОБЫ ОТКРЫТЬ БОТА</div>
+                  {Object.entries(aiWeekPlan).map(([day, v]) => (
+                    <div key={day} style={{border:`1px solid ${BORDER}`,borderRadius:12,padding:14,marginBottom:8,borderLeft:`3px solid ${DAY_COLORS[day]||BRAND}`}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                        <div>
+                          <span style={{fontSize:11,fontWeight:700,color:DAY_COLORS[day]||BRAND,marginRight:8}}>{DAY_LABELS[day]}</span>
+                          <span style={{fontSize:11,color:MUTED}}>{v.format}</span>
+                        </div>
+                        <a href={`https://t.me/avitolog_coach_bot`} target="_blank" rel="noreferrer"
+                          style={{fontSize:11,padding:"4px 10px",background:BRAND,color:"white",borderRadius:6,textDecoration:"none",fontWeight:700,whiteSpace:"nowrap"}}>
+                          Написать →
+                        </a>
+                      </div>
+                      <div style={{fontSize:13,color:TEXT,fontWeight:600,marginBottom:3}}>{v.topic}</div>
+                      <div style={{fontSize:12,color:MUTED,fontStyle:"italic"}}>"{v.hook}"</div>
+                    </div>
+                  ))}
+                  <div style={{fontSize:11,color:MUTED,textAlign:"center",marginTop:8}}>
+                    ✅ Темы сохранены — бот знает план
+                  </div>
+                </div>
+              )}
+
 
               {WEEK_PLAN.map((d) => {
                 const key = DAY_KEYS[d.day];

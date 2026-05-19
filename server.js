@@ -11,6 +11,22 @@ const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const REDIS_URL     = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN   = process.env.UPSTASH_REDIS_REST_TOKEN;
 
+// Конвертация Markdown → Telegram формат
+function toTgMarkdown(text) {
+  return String(text)
+    .replace(/^\|.*\|$/gm, row => {
+      if (/^[\s|:-]+$/.test(row)) return "";
+      return row.split("|").map(c => c.trim()).filter(c => c && !/^[-:]+$/.test(c)).join("  ·  ");
+    })
+    .replace(/\*\*(.+?)\*\*/g, "*$1*")
+    .replace(/^#{1,2}\s+(.+)$/gm, "\n*$1*")
+    .replace(/^#{3,6}\s+(.+)$/gm, "$1")
+    .replace(/^---+$/gm, "")
+    .replace(/__(.+?)__/g, "_$1_")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 // ─── Claude API proxy ─────────────────────────────────────────────────────────
 app.post("/api/claude", async (req, res) => {
   try {
@@ -72,13 +88,14 @@ app.post("/api/send-tg", async (req, res) => {
   try {
     const { chat_id, text, platform } = req.body;
     const label = { tg: "Telegram", vk: "ВКонтакте", tenchat: "TenChat" }[platform] || platform;
-    const message = `📋 Пост для ${label}\n\n${text}`;
+    const cleanText = toTgMarkdown(text);
+    const message = `📋 Пост для ${label}\n\n${cleanText}`;
     const r = await fetch(
       `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id, text: message }),
+        body: JSON.stringify({ chat_id, text: message, parse_mode: "Markdown" }),
       }
     );
     res.json(await r.json());

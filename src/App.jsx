@@ -55,11 +55,62 @@ function getWeekOfMonth() {
 }
 
 const WEEK_PLAN = [
-  { day: 1, label: "ПН", format: "Кейс из агентства" },
-  { day: 2, label: "ВТ", format: "Лайфхак / алгоритм Авито" },
-  { day: 3, label: "СР", format: "Разбор ошибки" },
-  { day: 4, label: "ЧТ", format: "Рыночный инсайт" },
-  { day: 5, label: "ПТ", format: "Личное / рефлексия" },
+  {
+    day: 1, label: "ПН", emoji: "📊",
+    rubric: "Кейс недели",
+    goal: "Доверие через цифры",
+    topics: [
+      "Мини-кейс с поля: ремонт квартир, CTR 1.2% → 6.8% за 4 дня",
+      "Паттерн: что объединяет аккаунты с CPL ниже 200₽",
+      "Полный кейс ниши X — 10 шагов системы FORMULA",
+    ],
+    cta: "Хочешь так же — загрузи объявление в AI Авитолог PRO",
+  },
+  {
+    day: 2, label: "ВТ", emoji: "🔍",
+    rubric: "Разбор живого",
+    goal: "Демо сервиса в действии",
+    interactive: true,
+    topics: [
+      "Прогнала случайное объявление юриста через AI Авитолог PRO — вот что нашёл",
+      "Разбор объявления ремонтной компании: 3 ошибки за 30 секунд",
+      "Что показал сервис на объявлении из топа в нише отопления",
+    ],
+    cta: "Загрузи своё объявление — 3 запроса бесплатно",
+  },
+  {
+    day: 3, label: "СР", emoji: "🎯",
+    rubric: "Интерактив",
+    goal: "Вовлечение и охват",
+    topics: [
+      "Опрос: какой CTR у ваших объявлений сейчас? 2% / 5% / 8% / не смотрю",
+      "Спорное: платное продвижение не нужно если заголовок правильный — согласны?",
+      "Угадайте: на этом скриншоте 3 ошибки — какие?",
+    ],
+    cta: "Напишите свой ответ ⬇️",
+  },
+  {
+    day: 4, label: "ЧТ", emoji: "💬",
+    rubric: "Мне часто пишут",
+    goal: "Экспертиза + сервис как ответ",
+    topics: [
+      "Мне часто пишут: почему 1000 просмотров и 0 заявок",
+      "Мне часто пишут: как работает Ranker 3 на Авито в 2026",
+      "Мне часто пишут: стоит ли поднимать ставку продвижения",
+    ],
+    cta: "На такие вопросы AI Авитолог PRO отвечает автоматически",
+  },
+  {
+    day: 5, label: "ПТ", emoji: "💜",
+    rubric: "Закулисье",
+    goal: "Человечность + процесс",
+    topics: [
+      "Что AI Авитолог PRO проверил на этой неделе — общие паттерны",
+      "Личное наблюдение: как изменилась работа авитолога с AI",
+      "Закулисье: как я выбираю что улучшить в сервисе",
+    ],
+    cta: "Хочешь увидеть свой аккаунт глазами AI",
+  },
 ];
 
 const DAY_KEYS = { 1: "monday", 2: "tuesday", 3: "wednesday", 4: "thursday", 5: "friday" };
@@ -71,9 +122,8 @@ function loadSavedPlan() {
 function getTopicsForDay(dayNum) {
   const saved = loadSavedPlan();
   const key = DAY_KEYS[dayNum];
-  const weekNum = getWeekOfMonth();
-  const theme = MONTHLY_THEMES.find((t) => t.week === weekNum) || MONTHLY_THEMES[0];
-  const defaults = theme.topics[dayNum] || theme.topics[1];
+  const day = WEEK_PLAN.find(d => d.day === dayNum) || WEEK_PLAN[0];
+  const defaults = day.topics;
   if (saved[key]) return [saved[key], ...defaults];
   return defaults;
 }
@@ -598,29 +648,46 @@ export default function App() {
       )}
 
       {view === "today" && <div style={{background:CARD,borderRadius:20,padding:20,boxShadow:"0 2px 16px rgba(17,12,48,0.08)"}}>
-        <div style={{marginBottom:14}}>
-          <div style={{fontSize:16,fontWeight:700,marginBottom:7}}>{plan.format}</div>
-          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-            {PLATFORMS.map((p) => <span key={p.id} style={{fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:4,border:`1px solid ${p.color}44`,color:p.color,background:p.color+"11"}}>{p.name}</span>)}
+        <div style={{marginBottom:16}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+            <span style={{fontSize:24}}>{plan.emoji}</span>
+            <div>
+              <div style={{fontSize:18,fontWeight:700,color:TEXT}}>{plan.rubric}</div>
+              <div style={{fontSize:11,color:MUTED,fontWeight:500}}>{plan.goal}</div>
+            </div>
           </div>
+          {plan.interactive && (
+            <div style={{display:"flex",alignItems:"center",gap:6,padding:"8px 12px",background:"linear-gradient(135deg, #FEF3C7 0%, #FED7AA 100%)",borderRadius:10,marginTop:10}}>
+              <span style={{fontSize:14}}>⚡</span>
+              <span style={{fontSize:11,fontWeight:700,color:"#92400E"}}>ИНТЕРАКТИВНЫЙ ДЕНЬ — прогоняй реальное объявление через сервис</span>
+            </div>
+          )}
         </div>
         <div style={{height:1,background:BORDER,margin:"14px 0"}} />
 
         {step === "brief" && (
           <div style={{animation:"fadeUp 0.3s ease"}}>
             {/* Quick format chips */}
-            <div style={{fontSize:10,letterSpacing:2,color:MUTED,fontWeight:700,marginBottom:10}}>БЫСТРЫЙ СТАРТ</div>
+            <div style={{fontSize:10,letterSpacing:2,color:MUTED,fontWeight:700,marginBottom:10}}>5 РУБРИК — БЫСТРЫЙ СТАРТ</div>
             <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:18}}>
               {[
-                {emoji:"📌", label:"Разбор ошибки", topic:"разбор ошибки в объявлении"},
-                {emoji:"💬", label:"Мне пишут", topic:"мне часто пишут: почему нет заявок"},
-                {emoji:"🎯", label:"Демо сервиса", topic:"напиши пост демо сервиса AI Авитолог PRO"},
-                {emoji:"📊", label:"Из кабинета", topic:"напиши пост скриншот цифры из кабинета"},
-                {emoji:"⭐️", label:"Кейс", topic:"напиши кейс"},
+                {emoji:"📊", label:"Кейс недели", topic:"напиши мини-кейс с поля с конкретными цифрами", primary: dow===1},
+                {emoji:"🔍", label:"Разбор живого", topic:"напиши пост: прогнала объявление через AI Авитолог PRO — вот что нашёл сервис", primary: dow===2, hot: true},
+                {emoji:"🎯", label:"Интерактив", topic:"напиши опрос или спорное утверждение для вовлечения", primary: dow===3},
+                {emoji:"💬", label:"Мне пишут", topic:"мне часто пишут: почему нет заявок при тысяче просмотров", primary: dow===4},
+                {emoji:"💜", label:"Закулисье", topic:"напиши пост закулисье — что AI Авитолог PRO проверил на этой неделе", primary: dow===5},
               ].map((f) => (
                 <button key={f.label} onClick={() => { setCustomTopic(f.topic); setSelTopic(null); setStep("generating"); }}
-                  style={{display:"flex",alignItems:"center",gap:6,padding:"8px 12px",background:DARK,border:`1px solid ${BORDER}`,borderRadius:20,fontSize:12,fontWeight:600,color:TEXT,cursor:"pointer",whiteSpace:"nowrap"}}>
-                  <span>{f.emoji}</span>{f.label}
+                  style={{
+                    display:"flex",alignItems:"center",gap:6,padding:"10px 14px",
+                    background: f.primary ? "linear-gradient(135deg, #9C6FFC 0%, #7433E2 100%)" : f.hot ? "#FEF3C7" : DARK,
+                    border: f.primary ? "none" : `1px solid ${f.hot ? "#FCD34D" : BORDER}`,
+                    borderRadius:20,fontSize:12,fontWeight:700,
+                    color: f.primary ? "white" : f.hot ? "#92400E" : TEXT,
+                    cursor:"pointer",whiteSpace:"nowrap",
+                    boxShadow: f.primary ? "0 4px 12px rgba(139,92,246,0.35)" : "none"
+                  }}>
+                  <span>{f.emoji}</span>{f.label}{f.primary && " ★"}
                 </button>
               ))}
             </div>

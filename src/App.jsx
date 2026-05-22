@@ -597,7 +597,7 @@ export default function App() {
 
         {step === "brief" && (
           <div style={{animation:"fadeUp 0.3s ease"}}>
-            <div style={{fontSize:14,color:MUTED,lineHeight:1.7,marginBottom:18}}>Выбери тему → напишу пост и адаптирую под <strong style={{color:TEXT}}>TG, VK и TenChat</strong>.</div>
+            <div style={{fontSize:14,color:MUTED,lineHeight:1.7,marginBottom:18}}>Выбери тему → напишу готовый пост для Telegram.</div>
             <button style={{width:"100%",padding:"13px",background:BRAND,color:"white",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={() => setStep("topic")}>Выбрать тему →</button>
           </div>
         )}
@@ -766,7 +766,7 @@ export default function App() {
           </div>
         )}
       </div>}
-      {view === "today" && step==="brief" && <div style={{textAlign:"center",fontSize:12,color:MUTED,marginTop:14}}>💜 Одна тема = три платформы = система роста</div>}
+      {view === "today" && step==="brief" && <div style={{textAlign:"center",fontSize:12,color:MUTED,marginTop:14}}>💜 Один сильный пост лучше трёх средних</div>}
 
       {view === "today" && (() => {
         const reels = REELS_PLAN[dow] || REELS_PLAN[1];

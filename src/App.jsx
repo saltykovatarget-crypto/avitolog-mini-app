@@ -264,11 +264,14 @@ export default function App() {
       if (json) {
         const plan = JSON.parse(json);
         setAiWeekPlan(plan);
-        // Сохраняем в Redis для синхронизации с ботом
+        // Сохраняем в Redis → бот и Mini App видят один план
         if (tgUserId) {
           const topics = {};
-          Object.entries(plan).forEach(([day, v]) => { topics[DAY_KEYS[{monday:1,tuesday:2,wednesday:3,thursday:4,friday:5}[day]] || day] = v.topic; });
+          const dayNums = {monday:1,tuesday:2,wednesday:3,thursday:4,friday:5};
+          Object.entries(plan).forEach(([day, v]) => { topics[day] = v.topic; });
           await syncPost(tgUserId, "weekPlan", topics);
+          // Также обновляем planInputs
+          setPlanInputs(prev => ({...prev, ...topics}));
         }
       }
     } catch(e) { console.error(e); }
@@ -276,14 +279,28 @@ export default function App() {
   }
 
   const [botIdeas, setBotIdeas] = useState([]);
+  const [syncStatus, setSyncStatus] = useState("");
 
+  // ─── Загружаем всё из Redis при старте ───────────────────────────────────────
   useEffect(() => {
     const id = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
     if (id) {
       setTgUserId(id);
-      // Подгружаем идеи сохранённые через бот
+      // Идеи из бота
       syncGet(id, "ideas").then(data => {
         if (Array.isArray(data) && data.length > 0) setBotIdeas(data);
+      });
+      // План недели из бота/прошлой сессии
+      syncGet(id, "weekPlan").then(data => {
+        if (data && typeof data === "object" && !Array.isArray(data)) {
+          setPlanInputs(prev => ({
+            monday:    data.monday    || prev.monday    || "",
+            tuesday:   data.tuesday   || prev.tuesday   || "",
+            wednesday: data.wednesday || prev.wednesday || "",
+            thursday:  data.thursday  || prev.thursday  || "",
+            friday:    data.friday    || prev.friday    || "",
+          }));
+        }
       });
     }
     if (dow === 0) setView("plan");
@@ -357,8 +374,15 @@ export default function App() {
     setPlanLoading(false);
   }
 
-  function savePlan() {
+  async function savePlan() {
     localStorage.setItem("weekPlan", JSON.stringify(planInputs));
+    // Синхронизируем в Redis → бот увидит план
+    if (tgUserId) {
+      setSyncStatus("Сохраняю...");
+      await syncPost(tgUserId, "weekPlan", planInputs);
+      setSyncStatus("✅ Синхронизировано с ботом");
+      setTimeout(() => setSyncStatus(""), 2000);
+    }
     setPlanSaved(true);
   }
 
@@ -470,7 +494,21 @@ export default function App() {
             </div>
           ) : (
             <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:16,padding:20}}>
-              <div style={{fontSize:10,letterSpacing:2,color:MUTED,fontWeight:700,marginBottom:4}}>КОНТЕНТ-ДИРЕКТОР</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                <div style={{fontSize:10,letterSpacing:2,color:MUTED,fontWeight:700}}>КОНТЕНТ-ДИРЕКТОР</div>
+                {syncStatus && <div style={{fontSize:11,color:BRAND,fontWeight:600}}>{syncStatus}</div>}
+                {tgUserId && <button onClick={async()=>{
+                  setSyncStatus("Обновляю...");
+                  const data = await syncGet(tgUserId, "weekPlan");
+                  if (data && typeof data === "object" && !Array.isArray(data)) {
+                    setPlanInputs(prev=>({...prev,...data}));
+                    setSyncStatus("✅ Обновлено из бота");
+                  } else setSyncStatus("Нет данных");
+                  setTimeout(()=>setSyncStatus(""),2000);
+                }} style={{fontSize:11,color:MUTED,background:"transparent",border:`1px solid ${BORDER}`,borderRadius:6,padding:"3px 8px",cursor:"pointer"}}>
+                  🔄
+                </button>}
+              </div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
                 <div style={{fontSize:17,fontWeight:700}}>План на неделю</div>
                 <button onClick={generateAiWeekPlan} disabled={aiPlanLoading}

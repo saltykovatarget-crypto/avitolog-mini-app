@@ -608,8 +608,25 @@ export default function App() {
 
         {step === "brief" && (
           <div style={{animation:"fadeUp 0.3s ease"}}>
-            <div style={{fontSize:14,color:MUTED,lineHeight:1.7,marginBottom:18}}>Выбери тему → напишу готовый пост для Telegram.</div>
-            <button style={{width:"100%",padding:"15px",background:"linear-gradient(135deg, #9C6FFC 0%, #7433E2 100%)",color:"white",border:"none",borderRadius:14,fontSize:15,fontWeight:700,cursor:"pointer",boxShadow:"0 6px 16px rgba(139,92,246,0.4)",transition:"transform 0.1s"}} onClick={() => setStep("topic")}>Выбрать тему →</button>
+            {/* Quick format chips */}
+            <div style={{fontSize:10,letterSpacing:2,color:MUTED,fontWeight:700,marginBottom:10}}>БЫСТРЫЙ СТАРТ</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:18}}>
+              {[
+                {emoji:"📌", label:"Разбор ошибки", topic:"разбор ошибки в объявлении"},
+                {emoji:"💬", label:"Мне пишут", topic:"мне часто пишут: почему нет заявок"},
+                {emoji:"🎯", label:"Демо сервиса", topic:"напиши пост демо сервиса AI Авитолог PRO"},
+                {emoji:"📊", label:"Из кабинета", topic:"напиши пост скриншот цифры из кабинета"},
+                {emoji:"⭐️", label:"Кейс", topic:"напиши кейс"},
+              ].map((f) => (
+                <button key={f.label} onClick={() => { setCustomTopic(f.topic); setSelTopic(null); setStep("generating"); }}
+                  style={{display:"flex",alignItems:"center",gap:6,padding:"8px 12px",background:DARK,border:`1px solid ${BORDER}`,borderRadius:20,fontSize:12,fontWeight:600,color:TEXT,cursor:"pointer",whiteSpace:"nowrap"}}>
+                  <span>{f.emoji}</span>{f.label}
+                </button>
+              ))}
+            </div>
+            <div style={{height:1,background:BORDER,marginBottom:16}} />
+            <div style={{fontSize:13,color:MUTED,marginBottom:14}}>Или выбери свою тему</div>
+            <button style={{width:"100%",padding:"15px",background:"linear-gradient(135deg, #9C6FFC 0%, #7433E2 100%)",color:"white",border:"none",borderRadius:14,fontSize:15,fontWeight:700,cursor:"pointer",boxShadow:"0 6px 16px rgba(139,92,246,0.4)"}} onClick={() => setStep("topic")}>Выбрать тему →</button>
           </div>
         )}
 
@@ -778,6 +795,28 @@ export default function App() {
         )}
       </div>}
       {view === "today" && step==="brief" && <div style={{textAlign:"center",fontSize:12,color:MUTED,marginTop:14}}>💜 Один сильный пост лучше трёх средних</div>}
+
+      {/* 💡 Ideas from bot */}
+      {view === "today" && step==="brief" && botIdeas.length > 0 && (
+        <div style={{background:CARD,borderRadius:20,padding:18,marginTop:12,boxShadow:"0 2px 12px rgba(17,12,48,0.07)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{fontSize:10,letterSpacing:2,color:MUTED,fontWeight:700}}>💡 ИДЕИ ИЗ БОТА</div>
+            <span style={{fontSize:11,color:MUTED}}>{botIdeas.length} идей</span>
+          </div>
+          {botIdeas.slice(0,3).map((idea, i) => (
+            <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:i<Math.min(botIdeas.length,3)-1?`1px solid ${BORDER}`:"none"}}>
+              <span style={{fontSize:13,color:TEXT,lineHeight:1.4,flex:1,marginRight:10}}>{idea.text}</span>
+              <button onClick={() => { setCustomTopic(idea.text); setSelTopic(null); setStep("generating"); }}
+                style={{padding:"5px 12px",background:BRAND,color:"white",border:"none",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
+                Писать
+              </button>
+            </div>
+          ))}
+          {botIdeas.length > 3 && (
+            <div style={{fontSize:12,color:MUTED,textAlign:"center",marginTop:10}}>+ ещё {botIdeas.length - 3} идей в боте (/ideas)</div>
+          )}
+        </div>
+      )}
 
       {view === "today" && (() => {
         const reels = REELS_PLAN[dow] || REELS_PLAN[1];

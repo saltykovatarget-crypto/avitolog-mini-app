@@ -415,28 +415,39 @@ export default function App() {
         </div>
         <div style={{fontSize:11,color:MUTED,background:CARD,border:`1px solid ${BORDER}`,borderRadius:8,padding:"5px 11px"}}>{dayName}</div>
       </div>
-      <div style={{display:"flex",gap:4,marginBottom:16,background:CARD,padding:4,borderRadius:10,border:`1px solid ${BORDER}`}}>
+      {/* Tabs — белая карточка с активной фиолетовой вкладкой */}
+      <div style={{display:"flex",gap:2,marginBottom:16,background:CARD,padding:4,borderRadius:14,boxShadow:"0 2px 12px rgba(17,12,48,0.08)"}}>
         {[{id:"today",label:"Сегодня"},{id:"week",label:"Вся неделя"},{id:"plan",label:"📅 План"}].map((v) => (
-          <button key={v.id} onClick={() => { setView(v.id); setPlanSaved(false); }} style={{flex:1,padding:"7px",background:view===v.id?BRAND:"transparent",color:view===v.id?"white":MUTED,border:"none",borderRadius:7,fontSize:12,fontWeight:700,cursor:"pointer",transition:"all 0.2s"}}>
+          <button key={v.id} onClick={() => { setView(v.id); setPlanSaved(false); }} style={{flex:1,padding:"8px 4px",background:view===v.id?BRAND:"transparent",color:view===v.id?"white":MUTED,border:"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",transition:"all 0.2s",boxShadow:view===v.id?"0 4px 12px rgba(139,92,246,0.35)":"none"}}>
             {v.label}
           </button>
         ))}
       </div>
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16,padding:"8px 12px",background:BRAND+"11",borderRadius:10,border:`1px solid ${BRAND}33`}}>
-        <span style={{fontSize:11,color:BRAND,fontWeight:700}}>НЕДЕЛЯ {weekNum}</span>
-        <span style={{fontSize:11,color:MUTED}}>·</span>
-        <span style={{fontSize:12,color:TEXT,fontWeight:600}}>{currentTheme.theme}</span>
+
+      {/* Week theme banner */}
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,padding:"10px 14px",background:"#EFE9FE",borderRadius:14,border:"1.5px solid rgba(139,92,246,0.25)"}}>
+        <div style={{width:8,height:8,borderRadius:"50%",background:BRAND,flexShrink:0}} />
+        <div>
+          <div style={{fontSize:10,color:BRAND,fontWeight:700,letterSpacing:"1.5px"}}>НЕДЕЛЯ {weekNum}</div>
+          <div style={{fontSize:13,color:TEXT,fontWeight:600,marginTop:1}}>{currentTheme.theme}</div>
+        </div>
       </div>
 
-      <div style={{display:"flex",gap:5,marginBottom:18}}>
+      {/* Day tabs — крупнее, активный с свечением */}
+      <div style={{display:"flex",gap:8,marginBottom:18}}>
         {WEEK_PLAN.map((d) => {
           const isToday = d.day === dow;
           const isDone = doneDays.includes(d.day);
           return (
-            <div key={d.day} style={{flex:1,padding:"5px 2px",borderRadius:7,display:"flex",flexDirection:"column",alignItems:"center",gap:2,background:isDone?BRAND:isToday?"#EDE9FD":"transparent",border:`1.5px solid ${isToday?BRAND:isDone?BRAND:BORDER}`,opacity:d.day<dow&&!isDone?0.35:1}}>
-              <span style={{fontSize:10,fontWeight:700,color:isDone?"white":isToday?ACCENT:MUTED}}>{d.label}</span>
-              {isDone && <span style={{fontSize:9,color:"white"}}>✓</span>}
-              {isToday && !isDone && <div style={{width:4,height:4,borderRadius:"50%",background:ACCENT}} />}
+            <div key={d.day} style={{flex:1,padding:"10px 4px",borderRadius:14,display:"flex",flexDirection:"column",alignItems:"center",gap:4,
+              background:isToday?BRAND:CARD,
+              boxShadow:isToday?"0 4px 14px rgba(139,92,246,0.4)":"0 2px 8px rgba(17,12,48,0.06)",
+              opacity:d.day<dow&&!isDone&&!isToday?0.5:1,
+              transition:"all 0.2s"}}>
+              <span style={{fontSize:13,fontWeight:700,color:isToday?"white":isDone?"#22C55E":MUTED}}>{d.label}</span>
+              {isDone && !isToday && <span style={{fontSize:11,color:"#22C55E",fontWeight:700}}>✓</span>}
+              {isToday && <div style={{width:5,height:5,borderRadius:"50%",background:"rgba(255,255,255,0.8)"}} />}
+              {!isDone && !isToday && <div style={{width:5,height:5}} />}
             </div>
           );
         })}
@@ -586,7 +597,7 @@ export default function App() {
         </div>
       )}
 
-      {view === "today" && <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:16,padding:20}}>
+      {view === "today" && <div style={{background:CARD,borderRadius:20,padding:20,boxShadow:"0 2px 16px rgba(17,12,48,0.08)"}}>
         <div style={{marginBottom:14}}>
           <div style={{fontSize:16,fontWeight:700,marginBottom:7}}>{plan.format}</div>
           <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
@@ -598,7 +609,7 @@ export default function App() {
         {step === "brief" && (
           <div style={{animation:"fadeUp 0.3s ease"}}>
             <div style={{fontSize:14,color:MUTED,lineHeight:1.7,marginBottom:18}}>Выбери тему → напишу готовый пост для Telegram.</div>
-            <button style={{width:"100%",padding:"13px",background:BRAND,color:"white",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={() => setStep("topic")}>Выбрать тему →</button>
+            <button style={{width:"100%",padding:"15px",background:"linear-gradient(135deg, #9C6FFC 0%, #7433E2 100%)",color:"white",border:"none",borderRadius:14,fontSize:15,fontWeight:700,cursor:"pointer",boxShadow:"0 6px 16px rgba(139,92,246,0.4)",transition:"transform 0.1s"}} onClick={() => setStep("topic")}>Выбрать тему →</button>
           </div>
         )}
 

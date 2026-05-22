@@ -155,9 +155,7 @@ const DAY_COLORS = {
 };
 
 const PLATFORMS = [
-  { id: "tg", name: "Telegram", color: "#2AABEE", format: "1280×720px (горизонтальный)", prompt: `Адаптируй для Telegram-канала. Хук в первых 2 строках. Эмодзи как маркеры: ➡️ 📌 ⚡️ 💜. В конце вопрос к аудитории + хэштеги #авито #авитолог #трафик. Подпись: 💜Подпишись на канал AI Авитолог | Валерия Салтыкова` },
-  { id: "vk", name: "ВКонтакте", color: "#4C75A3", format: "1080×607px (горизонтальный)", prompt: `Адаптируй для ВКонтакте. Короткий формат 10-20 строк. Меньше эмодзи. CTA: Подписывайтесь на страницу. 3-5 хэштегов: #авито #авитопродвижение #малыйбизнес` },
-  { id: "tenchat", name: "TenChat", color: "#00B894", format: "1280×720px (горизонтальный)", prompt: `Адаптируй для TenChat. Деловой экспертный тон. Без хэштегов. 15-25 строк. Вместо переслать: Поделитесь мнением в комментариях` },
+  { id: "tg", name: "Telegram", color: "#8B5CF6", format: "1280×720px (горизонтальный)", prompt: "" },
 ];
 
 const VISUAL_SYSTEM = `Ты — визуальный продюсер Валерии Салтыковой (AI Авитолог PRO). Брендбук: фиолетовый #8B5CF6, тёмно-синий фон #0D0D14, белый текст. Стиль: современный, минималистичный, технологичный. Логотип: «AI Авитолог PRO». Персонаж: молодая женщина-эксперт, деловой стиль, уверенная. На основе поста сгенерируй ДВА блока без вступлений:
@@ -360,45 +358,34 @@ export default function App() {
     setStep("generating");
     setGenStep(0);
     setDraftErrors({});
-    const base = await callClaude(BASE_SYSTEM, `Формат: ${plan.format}\nТема: ${topic}\n\nНапиши базовый пост.`);
-    if (!base) { setStep("topic"); return; }
-    const result = { base };
-    const errors = {};
-    for (let i = 0; i < PLATFORMS.length; i++) {
-      setGenStep(i + 1);
-      const p = PLATFORMS[i];
-      const text = await callClaude("Ты — редактор контента. Выдай только готовый текст без вступлений.", `Вот базовый пост:\n\n${base}\n\n---\n\n${p.prompt}`);
-      result[p.id] = text;
-      if (!text) errors[p.id] = true;
-    }
-    setDrafts(result);
-    setDraftErrors(errors);
+    // Один пост для Telegram — без адаптации под платформы
+    const tgSystem = `${BASE_SYSTEM}\n\nРубрика: ${plan.rubric} — ${plan.goal}\nЭмодзи маркеры: 📌 ➡️ ⚡️ 💜. Жирный для цифр. Подпись: 💜 AI Авитолог | Валерия Салтыкова. Хэштеги #авито #авитолог в конце.`;
+    setGenStep(1);
+    const post = await callClaude(tgSystem, `Тема: ${topic}\n\nНапиши готовый пост для Telegram.`);
+    if (!post) { setStep("topic"); return; }
+    setDrafts({ tg: post });
     setStep("drafts");
   }
 
-  async function regen(platformId) {
-    setDraftErrors((e) => ({ ...e, [platformId]: false }));
-    const p = PLATFORMS.find((x) => x.id === platformId);
-    const text = await callClaude("Ты — редактор контента. Выдай только готовый текст без вступлений.", `Вот базовый пост:\n\n${drafts.base}\n\n---\n\n${p.prompt}`);
+  async function regen() {
+    setDraftErrors((e) => ({ ...e, tg: false }));
+    const tgSystem = `${BASE_SYSTEM}\n\nРубрика: ${plan.rubric} — ${plan.goal}\nЭмодзи маркеры: 📌 ➡️ ⚡️ 💜. Жирный для цифр. Подпись: 💜 AI Авитолог | Валерия Салтыкова. Хэштеги #авито #авитолог в конце.`;
+    const text = await callClaude(tgSystem, `Тема: ${topic}\n\nНапиши готовый пост для Telegram. Сделай по-другому, чем в прошлый раз.`);
     if (text) {
-      setDrafts((d) => ({ ...d, [platformId]: text }));
+      setDrafts({ tg: text });
     } else {
-      setDraftErrors((e) => ({ ...e, [platformId]: true }));
+      setDraftErrors((e) => ({ ...e, tg: true }));
     }
   }
 
   async function generateVisuals() {
     setVisualLoading(true);
-    const result = {};
-    for (const p of PLATFORMS) {
-      const postText = drafts[p.id] || drafts.base || "";
-      const raw = await callClaude(
-        VISUAL_SYSTEM.replace("[формат]", p.format),
-        `Вот пост для ${p.name}:\n\n${postText}\n\nСгенерируй промпт и ТЗ для баннера.`
-      );
-      result[p.id] = raw ? parseVisual(raw) : null;
-    }
-    setVisuals(result);
+    const postText = drafts.tg || "";
+    const raw = await callClaude(
+      VISUAL_SYSTEM.replace("[формат]", "1280×720px (горизонтальный, Telegram)"),
+      `Вот пост для Telegram:\n\n${postText}\n\nСгенерируй промпт и ТЗ для баннера.`
+    );
+    setVisuals({ tg: raw ? parseVisual(raw) : null });
     setVisualLoading(false);
   }
 
@@ -454,7 +441,7 @@ export default function App() {
   function finish() { if (!doneDays.includes(dow)) setDoneDays([...doneDays, dow]); setStep("done"); }
   function restart() { setStep("brief"); setSelTopic(null); setCustomTopic(""); setDrafts({}); setDraftErrors({}); setPublished([]); setGenStep(0); setActiveTab("tg"); setVisuals({}); setVisualLoading(false); }
 
-  const allPub = PLATFORMS.every((p) => published.includes(p.id));
+  const allPub = published.includes("tg");
 
   return (
     <div style={{minHeight:"100vh",background:DARK,padding:"22px 16px",fontFamily:"'Golos Text','Segoe UI',sans-serif",color:TEXT,maxWidth:520,margin:"0 auto"}}>
@@ -472,15 +459,6 @@ export default function App() {
             {v.label}
           </button>
         ))}
-      </div>
-
-      {/* Week theme banner */}
-      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,padding:"10px 14px",background:"#EFE9FE",borderRadius:14,border:"1.5px solid rgba(139,92,246,0.25)"}}>
-        <div style={{width:8,height:8,borderRadius:"50%",background:BRAND,flexShrink:0}} />
-        <div>
-          <div style={{fontSize:10,color:BRAND,fontWeight:700,letterSpacing:"1.5px"}}>НЕДЕЛЯ {weekNum}</div>
-          <div style={{fontSize:13,color:TEXT,fontWeight:600,marginTop:1}}>{currentTheme.theme}</div>
-        </div>
       </div>
 
       {/* Day tabs — крупнее, активный с свечением */}
@@ -667,33 +645,23 @@ export default function App() {
 
         {step === "brief" && (
           <div style={{animation:"fadeUp 0.3s ease"}}>
-            {/* Quick format chips */}
-            <div style={{fontSize:10,letterSpacing:2,color:MUTED,fontWeight:700,marginBottom:10}}>5 РУБРИК — БЫСТРЫЙ СТАРТ</div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:18}}>
-              {[
-                {emoji:"📊", label:"Кейс недели", topic:"напиши мини-кейс с поля с конкретными цифрами", primary: dow===1},
-                {emoji:"🔍", label:"Разбор живого", topic:"напиши пост: прогнала объявление через AI Авитолог PRO — вот что нашёл сервис", primary: dow===2, hot: true},
-                {emoji:"🎯", label:"Интерактив", topic:"напиши опрос или спорное утверждение для вовлечения", primary: dow===3},
-                {emoji:"💬", label:"Мне пишут", topic:"мне часто пишут: почему нет заявок при тысяче просмотров", primary: dow===4},
-                {emoji:"💜", label:"Закулисье", topic:"напиши пост закулисье — что AI Авитолог PRO проверил на этой неделе", primary: dow===5},
-              ].map((f) => (
-                <button key={f.label} onClick={() => { setCustomTopic(f.topic); setSelTopic(null); setStep("generating"); }}
-                  style={{
-                    display:"flex",alignItems:"center",gap:6,padding:"10px 14px",
-                    background: f.primary ? "linear-gradient(135deg, #9C6FFC 0%, #7433E2 100%)" : f.hot ? "#FEF3C7" : DARK,
-                    border: f.primary ? "none" : `1px solid ${f.hot ? "#FCD34D" : BORDER}`,
-                    borderRadius:20,fontSize:12,fontWeight:700,
-                    color: f.primary ? "white" : f.hot ? "#92400E" : TEXT,
-                    cursor:"pointer",whiteSpace:"nowrap",
-                    boxShadow: f.primary ? "0 4px 12px rgba(139,92,246,0.35)" : "none"
-                  }}>
-                  <span>{f.emoji}</span>{f.label}{f.primary && " ★"}
-                </button>
-              ))}
+            {/* Подсказка темы сегодня */}
+            <div style={{padding:"14px 16px",background:DARK,borderRadius:14,marginBottom:16}}>
+              <div style={{fontSize:10,letterSpacing:1.5,color:MUTED,fontWeight:700,marginBottom:6}}>ИДЕЯ НА СЕГОДНЯ</div>
+              <div style={{fontSize:14,color:TEXT,lineHeight:1.5}}>{plan.topics[0]}</div>
             </div>
-            <div style={{height:1,background:BORDER,marginBottom:16}} />
-            <div style={{fontSize:13,color:MUTED,marginBottom:14}}>Или выбери свою тему</div>
-            <button style={{width:"100%",padding:"15px",background:"linear-gradient(135deg, #9C6FFC 0%, #7433E2 100%)",color:"white",border:"none",borderRadius:14,fontSize:15,fontWeight:700,cursor:"pointer",boxShadow:"0 6px 16px rgba(139,92,246,0.4)"}} onClick={() => setStep("topic")}>Выбрать тему →</button>
+
+            {/* Главная кнопка */}
+            <button
+              onClick={() => { setCustomTopic(plan.topics[0]); setSelTopic(null); setStep("generating"); }}
+              style={{width:"100%",padding:"18px",background:"linear-gradient(135deg, #9C6FFC 0%, #7433E2 100%)",color:"white",border:"none",borderRadius:16,fontSize:16,fontWeight:700,cursor:"pointer",boxShadow:"0 8px 20px rgba(139,92,246,0.4)",marginBottom:12}}>
+              ✨ Написать пост
+            </button>
+
+            {/* Вторичная — другие темы */}
+            <button onClick={() => setStep("topic")} style={{width:"100%",padding:"12px",background:"transparent",color:MUTED,border:`1px solid ${BORDER}`,borderRadius:12,fontSize:13,fontWeight:600,cursor:"pointer"}}>
+              Другая тема →
+            </button>
           </div>
         )}
 
@@ -724,7 +692,7 @@ export default function App() {
             <div style={{fontSize:10,letterSpacing:2,color:MUTED,fontWeight:700,marginBottom:8}}>ИЛИ СВОЯ ТЕМА</div>
             <textarea style={{width:"100%",minHeight:68,background:DARK,border:`1px solid ${customTopic?BRAND:BORDER}`,borderRadius:10,padding:"10px 12px",color:TEXT,fontSize:13,lineHeight:1.5,resize:"vertical",outline:"none",fontFamily:"inherit",boxSizing:"border-box"}} placeholder="Опиши кейс, ситуацию, идею..." value={customTopic} onChange={(e) => { setCustomTopic(e.target.value); if (e.target.value) setSelTopic(null); }} />
             <div style={{display:"flex",gap:8,marginTop:14}}>
-              <button style={{flex:1,padding:"13px",background:BRAND,color:"white",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",opacity:topic?1:0.4}} disabled={!topic} onClick={generate}>Написать для всех платформ →</button>
+              <button style={{flex:1,padding:"13px",background:BRAND,color:"white",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer",opacity:topic?1:0.4}} disabled={!topic} onClick={generate}>✨ Написать пост →</button>
               <button style={{padding:"13px 14px",background:"transparent",color:MUTED,border:`1px solid ${BORDER}`,borderRadius:10,cursor:"pointer"}} onClick={() => setStep("brief")}>←</button>
             </div>
           </div>
@@ -743,51 +711,41 @@ export default function App() {
 
         {step === "drafts" && (
           <div style={{animation:"fadeUp 0.3s ease"}}>
-            <div style={{fontSize:10,letterSpacing:2,color:MUTED,fontWeight:700,marginBottom:12}}>ЧЕРНОВИКИ ГОТОВЫ</div>
-            <div style={{display:"flex",gap:4,marginBottom:12}}>
-              {PLATFORMS.map((p) => (
-                <button key={p.id} style={{flex:1,padding:"8px 4px",background:activeTab===p.id?p.color+"11":"transparent",border:`1px solid ${activeTab===p.id?p.color:draftErrors[p.id]?ERROR+"44":"transparent"}`,borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",color:activeTab===p.id?p.color:draftErrors[p.id]?ERROR:MUTED}} onClick={() => setActiveTab(p.id)}>
-                  {published.includes(p.id)?"✅ ":draftErrors[p.id]?"⚠ ":""}{p.name}
+            <div style={{fontSize:10,letterSpacing:2,color:MUTED,fontWeight:700,marginBottom:12}}>ПОСТ ГОТОВ</div>
+            {draftErrors.tg ? (
+              <div style={{background:"#FFF5F5",border:`1px solid ${ERROR}44`,borderRadius:10,padding:20,textAlign:"center"}}>
+                <div style={{fontSize:13,color:ERROR,marginBottom:4}}>Не удалось сгенерировать</div>
+                <div style={{fontSize:12,color:MUTED,marginBottom:14}}>Проблема с API — нажми чтобы повторить</div>
+                <button style={{padding:"10px 20px",background:BRAND,color:"white",border:"none",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={() => regen("tg")}>
+                  Повторить генерацию
                 </button>
-              ))}
-            </div>
-            {PLATFORMS.map((p) => activeTab === p.id && (
-              <div key={p.id}>
-                {draftErrors[p.id] ? (
-                  <div style={{background:"#FFF5F5",border:`1px solid ${ERROR}44`,borderRadius:10,padding:20,textAlign:"center"}}>
-                    <div style={{fontSize:13,color:ERROR,marginBottom:4}}>Не удалось сгенерировать</div>
-                    <div style={{fontSize:12,color:MUTED,marginBottom:14}}>Проблема с API — нажми чтобы повторить</div>
-                    <button style={{padding:"10px 20px",background:BRAND,color:"white",border:"none",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={() => regen(p.id)}>
-                      Повторить генерацию
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div style={{background:DARK,border:`1px solid ${BORDER}`,borderRadius:10,padding:14,maxHeight:270,overflowY:"auto"}}>
-                      <pre style={{fontSize:12.5,color:TEXT,lineHeight:1.75,whiteSpace:"pre-wrap",margin:0,fontFamily:"inherit"}}>{drafts[p.id]}</pre>
-                    </div>
-                    <div style={{display:"flex",gap:7,marginTop:10}}>
-                      <button
-                        style={{flex:1,padding:"11px",background:published.includes(p.id)?"#166534":sending[p.id]?"#374151":p.color,color:"white",border:"none",borderRadius:9,fontSize:13,fontWeight:700,cursor:sending[p.id]?"default":"pointer",opacity:sending[p.id]?0.7:1}}
-                        disabled={sending[p.id]}
-                        onClick={() => tgUserId ? sendToTelegram(p.id) : togglePub(p.id)}
-                      >
-                        {published.includes(p.id) ? "✅ Отправлено в чат" : sending[p.id] ? "Отправляю..." : tgUserId ? `📨 Отправить в Telegram` : `✓ Отметить готовым`}
-                      </button>
-                      <CopyButton text={drafts[p.id] || ""} color={p.color} />
-                      <button style={{padding:"11px 13px",background:"transparent",color:MUTED,border:`1px solid ${BORDER}`,borderRadius:9,cursor:"pointer",fontSize:15}} onClick={() => regen(p.id)}>↻</button>
-                    </div>
-                  </>
-                )}
               </div>
-            ))}
-            <div style={{height:1,background:BORDER,margin:"14px 0"}} />
+            ) : (
+              <>
+                <div style={{background:DARK,border:`1px solid ${BORDER}`,borderRadius:12,padding:16,maxHeight:320,overflowY:"auto"}}>
+                  <pre style={{fontSize:13,color:TEXT,lineHeight:1.75,whiteSpace:"pre-wrap",margin:0,fontFamily:"inherit"}}>{drafts.tg}</pre>
+                </div>
+                <div style={{display:"flex",gap:7,marginTop:12}}>
+                  <button
+                    style={{flex:1,padding:"13px",background:published.includes("tg")?"#166534":sending.tg?"#374151":"linear-gradient(135deg, #9C6FFC 0%, #7433E2 100%)",color:"white",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:sending.tg?"default":"pointer",opacity:sending.tg?0.7:1,boxShadow:published.includes("tg")?"none":"0 4px 12px rgba(139,92,246,0.3)"}}
+                    disabled={sending.tg}
+                    onClick={() => tgUserId ? sendToTelegram("tg") : togglePub("tg")}
+                  >
+                    {published.includes("tg") ? "✅ Отправлено в чат" : sending.tg ? "Отправляю..." : tgUserId ? "📨 Отправить в Telegram" : "✓ Отметить готовым"}
+                  </button>
+                  <CopyButton text={drafts.tg || ""} color={BRAND} />
+                  <button style={{padding:"13px 14px",background:"transparent",color:MUTED,border:`1px solid ${BORDER}`,borderRadius:10,cursor:"pointer",fontSize:15}} onClick={() => regen("tg")}>↻</button>
+                </div>
+              </>
+            )}
 
-            {/* Визуал */}
+            <div style={{height:1,background:BORDER,margin:"16px 0"}} />
+
+            {/* Визуал — упрощённый, без табов */}
             <div style={{marginBottom:14}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                <span style={{fontSize:12,fontWeight:700,color:TEXT}}>Визуал к посту</span>
-                {!visualLoading && Object.keys(visuals).length === 0 && (
+                <span style={{fontSize:12,fontWeight:700,color:TEXT}}>🎨 Визуал к посту</span>
+                {!visualLoading && !visuals.tg && (
                   <button onClick={generateVisuals} style={{padding:"7px 14px",background:BRAND,color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>
                     Сгенерировать →
                   </button>
@@ -801,47 +759,36 @@ export default function App() {
                 </div>
               )}
 
-              {Object.keys(visuals).length > 0 && (
+              {visuals.tg && (
                 <div>
-                  <div style={{display:"flex",gap:4,marginBottom:10}}>
-                    {PLATFORMS.map((p) => (
-                      <button key={p.id} onClick={() => setVisualTab(p.id)} style={{flex:1,padding:"6px 4px",background:visualTab===p.id?p.color+"11":"transparent",border:`1px solid ${visualTab===p.id?p.color:"transparent"}`,borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer",color:visualTab===p.id?p.color:MUTED}}>
-                        {p.name}
-                      </button>
-                    ))}
-                  </div>
-                  {PLATFORMS.map((p) => visualTab === p.id && visuals[p.id] && (
-                    <div key={p.id}>
-                      <div style={{marginBottom:8}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
-                          <span style={{fontSize:10,fontWeight:700,letterSpacing:1,color:MUTED}}>ПРОМПТ ДЛЯ GPT / DALL-E</span>
-                          <CopyButton text={visuals[p.id].gpt} color={p.color} />
-                        </div>
-                        <div style={{background:DARK,border:`1px solid ${BORDER}`,borderRadius:9,padding:12,fontSize:12,color:TEXT,lineHeight:1.6}}>
-                          {visuals[p.id].gpt}
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
-                          <span style={{fontSize:10,fontWeight:700,letterSpacing:1,color:MUTED}}>ТЗ ДЛЯ ДИЗАЙНЕРА</span>
-                          <CopyButton text={visuals[p.id].tz} color={p.color} />
-                        </div>
-                        <div style={{background:DARK,border:`1px solid ${BORDER}`,borderRadius:9,padding:12,fontSize:12,color:TEXT,lineHeight:1.8,whiteSpace:"pre-wrap"}}>
-                          {visuals[p.id].tz}
-                        </div>
-                      </div>
+                  <div style={{marginBottom:10}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+                      <span style={{fontSize:10,fontWeight:700,letterSpacing:1,color:MUTED}}>ПРОМПТ ДЛЯ GPT / DALL-E</span>
+                      <CopyButton text={visuals.tg.gpt} color={BRAND} />
                     </div>
-                  ))}
+                    <div style={{background:DARK,border:`1px solid ${BORDER}`,borderRadius:9,padding:12,fontSize:12,color:TEXT,lineHeight:1.6}}>
+                      {visuals.tg.gpt}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+                      <span style={{fontSize:10,fontWeight:700,letterSpacing:1,color:MUTED}}>ТЗ ДЛЯ ДИЗАЙНЕРА</span>
+                      <CopyButton text={visuals.tg.tz} color={BRAND} />
+                    </div>
+                    <div style={{background:DARK,border:`1px solid ${BORDER}`,borderRadius:9,padding:12,fontSize:12,color:TEXT,lineHeight:1.8,whiteSpace:"pre-wrap"}}>
+                      {visuals.tg.tz}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
 
             <div style={{height:1,background:BORDER,margin:"14px 0"}} />
             <div style={{display:"flex",gap:7}}>
-              <button style={{flex:1,padding:"12px",background:allPub?BRAND:"transparent",color:allPub?"white":MUTED,border:`1px solid ${allPub?BRAND:BORDER}`,borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={finish}>
-                {allPub?"🎯 Закрыть день":`Осталось: ${PLATFORMS.filter(p=>!published.includes(p.id)).length} платформы`}
+              <button style={{flex:1,padding:"12px",background:published.includes("tg")?BRAND:"transparent",color:published.includes("tg")?"white":MUTED,border:`1px solid ${published.includes("tg")?BRAND:BORDER}`,borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer"}} onClick={finish}>
+                {published.includes("tg") ? "🎯 Закрыть день" : "Сначала отправь пост"}
               </button>
-              <button style={{padding:"12px 13px",background:"transparent",color:MUTED,border:`1px solid ${BORDER}`,borderRadius:9,cursor:"pointer"}} onClick={restart}>←</button>
+              <button style={{padding:"12px 14px",background:"transparent",color:MUTED,border:`1px solid ${BORDER}`,borderRadius:10,cursor:"pointer"}} onClick={restart}>←</button>
             </div>
           </div>
         )}
@@ -855,7 +802,7 @@ export default function App() {
               <div style={{height:"100%",background:BRAND,borderRadius:2,width:`${(doneDays.length/5)*100}%`,transition:"width 0.5s"}} />
             </div>
             <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"center",marginBottom:18}}>
-              {PLATFORMS.map((p) => <span key={p.id} style={{fontSize:11,padding:"3px 11px",borderRadius:20,background:p.color+"22",color:p.color,border:`1px solid ${p.color}44`}}>✅ {p.name}</span>)}
+              <span style={{fontSize:12,padding:"5px 14px",borderRadius:20,background:"#EDE9FD",color:BRAND,border:`1px solid ${BRAND}44`,fontWeight:600}}>✅ Пост опубликован</span>
             </div>
             <button style={{width:"100%",padding:"13px",background:BRAND,color:"white",border:"none",borderRadius:10,fontSize:14,fontWeight:700,cursor:"pointer"}} onClick={restart}>Ещё одна задача</button>
           </div>

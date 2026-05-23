@@ -281,6 +281,8 @@ export default function App() {
   const [reelsScript, setReelsScript] = useState(null);
   const [reelsLoading, setReelsLoading] = useState(false);
   const [reelsFilmed, setReelsFilmed] = useState(false);
+  const [reelsSending, setReelsSending] = useState(false);
+  const [reelsSent, setReelsSent] = useState(false);
   const [planInputs, setPlanInputs] = useState(() => {
     const s = loadSavedPlan();
     return { monday: s.monday||"", tuesday: s.tuesday||"", wednesday: s.wednesday||"", thursday: s.thursday||"", friday: s.friday||"" };
@@ -399,6 +401,28 @@ export default function App() {
     });
     setSending((s) => ({ ...s, [platformId]: false }));
     togglePub(platformId);
+  }
+
+  async function sendReelsToTelegram() {
+    if (!tgUserId || !reelsScript) return;
+    setReelsSending(true);
+    await fetch("/api/send-tg", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: tgUserId, text: `🎬 СЦЕНАРИЙ REELS\n\n${reelsScript}` }),
+    });
+    setReelsSending(false);
+    setReelsSent(true);
+  }
+
+  // Чистим markdown для отображения в превью (** → bold-like, * → курсив, без сырых звёздочек)
+  function cleanMd(text) {
+    return String(text || "")
+      .replace(/\*\*(.+?)\*\*/g, "$1")        // **bold** → bold
+      .replace(/(?<!\*)\*(?!\*)([^\*\n]+?)\*(?!\*)/g, "$1")  // *italic* → italic
+      .replace(/^#{1,6}\s+/gm, "")            // # heading → heading
+      .replace(/^\s*[-*]\s*$/gm, "")          // одинокие --- разделители
+      .replace(/\n{3,}/g, "\n\n");            // лишние пустые строки
   }
 
   async function suggestPlanTopics() {
@@ -723,7 +747,7 @@ export default function App() {
             ) : (
               <>
                 <div style={{background:DARK,border:`1px solid ${BORDER}`,borderRadius:12,padding:16,maxHeight:320,overflowY:"auto"}}>
-                  <pre style={{fontSize:13,color:TEXT,lineHeight:1.75,whiteSpace:"pre-wrap",margin:0,fontFamily:"inherit"}}>{drafts.tg}</pre>
+                  <pre style={{fontSize:13,color:TEXT,lineHeight:1.75,whiteSpace:"pre-wrap",margin:0,fontFamily:"inherit"}}>{cleanMd(drafts.tg)}</pre>
                 </div>
                 <div style={{display:"flex",gap:7,marginTop:12}}>
                   <button
@@ -864,15 +888,22 @@ export default function App() {
             {reelsScript && (
               <div style={{animation:"fadeUp 0.3s ease"}}>
                 <div style={{background:DARK,border:`1px solid ${BORDER}`,borderRadius:10,padding:14,maxHeight:300,overflowY:"auto",marginBottom:10}}>
-                  <pre style={{fontSize:12.5,color:TEXT,lineHeight:1.8,whiteSpace:"pre-wrap",margin:0,fontFamily:"inherit"}}>{reelsScript}</pre>
+                  <pre style={{fontSize:12.5,color:TEXT,lineHeight:1.8,whiteSpace:"pre-wrap",margin:0,fontFamily:"inherit"}}>{cleanMd(reelsScript)}</pre>
                 </div>
-                <div style={{display:"flex",gap:7}}>
-                  <button onClick={() => setReelsFilmed(true)} style={{flex:1,padding:"11px",background:reelsFilmed?"#166534":BRAND,color:"white",border:"none",borderRadius:9,fontSize:13,fontWeight:700,cursor:"pointer"}}>
-                    {reelsFilmed ? "✅ Снято" : "Отметить снято"}
+                <div style={{display:"flex",gap:7,marginBottom:7}}>
+                  <button
+                    onClick={() => tgUserId ? sendReelsToTelegram() : setReelsFilmed(true)}
+                    disabled={reelsSending}
+                    style={{flex:1,padding:"12px",background:reelsSent?"#166534":reelsSending?"#374151":"linear-gradient(135deg, #9C6FFC 0%, #7433E2 100%)",color:"white",border:"none",borderRadius:10,fontSize:13,fontWeight:700,cursor:reelsSending?"default":"pointer",opacity:reelsSending?0.7:1,boxShadow:reelsSent?"none":"0 4px 12px rgba(139,92,246,0.3)"}}
+                  >
+                    {reelsSent ? "✅ Отправлено в чат" : reelsSending ? "Отправляю..." : tgUserId ? "📨 Отправить в Telegram" : "✓ Отметить снято"}
                   </button>
                   <CopyButton text={reelsScript} color={BRAND} />
-                  <button onClick={() => { setReelsScript(null); generateReelsScript(); }} style={{padding:"11px 13px",background:"transparent",color:MUTED,border:`1px solid ${BORDER}`,borderRadius:9,cursor:"pointer",fontSize:15}}>↻</button>
+                  <button onClick={() => { setReelsScript(null); setReelsSent(false); generateReelsScript(); }} style={{padding:"12px 14px",background:"transparent",color:MUTED,border:`1px solid ${BORDER}`,borderRadius:10,cursor:"pointer",fontSize:15}}>↻</button>
                 </div>
+                <button onClick={() => setReelsFilmed((f) => !f)} style={{width:"100%",padding:"9px",background:reelsFilmed?"#EDE9FD":"transparent",color:reelsFilmed?BRAND:MUTED,border:`1px solid ${reelsFilmed?BRAND:BORDER}`,borderRadius:10,fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                  {reelsFilmed ? "✅ Снято" : "Отметить как снятое"}
+                </button>
               </div>
             )}
           </div>

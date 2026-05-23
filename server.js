@@ -86,10 +86,9 @@ app.post("/api/sync", async (req, res) => {
 // ─── Telegram send-tg ────────────────────────────────────────────────────────
 app.post("/api/send-tg", async (req, res) => {
   try {
-    const { chat_id, text, platform } = req.body;
-    const label = { tg: "Telegram", vk: "ВКонтакте", tenchat: "TenChat" }[platform] || platform;
+    const { chat_id, text } = req.body;
     const cleanText = toTgMarkdown(text);
-    const message = `📋 Пост для ${label}\n\n${cleanText}`;
+    const message = `📋 Готовый пост\n\n${cleanText}`;
     const r = await fetch(
       `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
       {

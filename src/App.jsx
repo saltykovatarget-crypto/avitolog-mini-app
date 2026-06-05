@@ -207,14 +207,35 @@ const AGENT_CATEGORIES = [
   },
 ];
 
-// Открывает бот с deep-link для активации агента, закрывает Mini App
-function openAgentInBot(agentId) {
-  const link = `https://t.me/avitolog_coach_bot?start=agent_${agentId}`;
-  if (window.Telegram?.WebApp) {
-    window.Telegram.WebApp.openTelegramLink(link);
-    setTimeout(() => window.Telegram?.WebApp?.close?.(), 300);
-  } else {
-    window.open(link, "_blank");
+// Активирует агента БЕЗ deep-link (старт-кнопки):
+// серверный endpoint пишет в Redis + шлёт приветственное сообщение через Bot API.
+// Затем Mini App закрывается — юзер видит приветствие в чате с ботом.
+async function openAgentInBot(agentId) {
+  const tg = window.Telegram?.WebApp;
+  const chatId = tg?.initDataUnsafe?.user?.id;
+
+  // Хаптик-фидбэк сразу
+  try { tg?.HapticFeedback?.impactOccurred?.("medium"); } catch {}
+
+  if (!chatId) {
+    // Вне Telegram — открыть бота в браузере
+    window.open(`https://t.me/avitolog_coach_bot?start=agent_${agentId}`, "_blank");
+    return;
+  }
+
+  try {
+    const r = await fetch("/api/pin-agent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chatId, agentId }),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    // Закрываем Mini App — юзер автоматически возвращается в чат с ботом,
+    // где уже ждёт приветственное сообщение от подключённого агента.
+    setTimeout(() => tg?.close?.(), 250);
+  } catch (e) {
+    try { tg?.HapticFeedback?.notificationOccurred?.("error"); } catch {}
+    alert("Не удалось подключить агента. Попробуй ещё раз.");
   }
 }
 

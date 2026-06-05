@@ -96,6 +96,67 @@ app.post("/api/sync", async (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── Pin agent для чата (вызывается из Mini App кнопкой Агент) ───────────────
+// Без deep-link старт-кнопки: пишем в Redis pinned:<chatId> + шлём приветствие.
+const AGENT_META = {
+  "smm":              { emoji: "✍️", name: "SMM" },
+  "editor":           { emoji: "📝", name: "Редактор" },
+  "reels-pro":        { emoji: "🎬", name: "Reels Pro" },
+  "case-writer":      { emoji: "📋", name: "Кейс-писатель" },
+  "scriptwriter":     { emoji: "🎥", name: "Сценарист" },
+  "product-marketer": { emoji: "🚀", name: "Продукт-маркетолог" },
+  "sales":            { emoji: "💰", name: "Продажник" },
+  "lead-magnet":      { emoji: "🧲", name: "Лид-магниты" },
+  "onboarding":       { emoji: "🎯", name: "Онбординг" },
+  "visual":           { emoji: "🎨", name: "Визуал" },
+  "seo":              { emoji: "🔍", name: "SEO" },
+  "analyst":          { emoji: "📊", name: "Аналитик" },
+  "content-director": { emoji: "🗓",  name: "Контент-директор" },
+  "competitor":       { emoji: "🕵️", name: "Разведчик" },
+  "ideas":            { emoji: "💡", name: "Заметки" },
+  "community":        { emoji: "💬", name: "Комьюнити" },
+  "office-hours":     { emoji: "🎓", name: "Office Hours" },
+  "chesky":           { emoji: "⭐️", name: "Chesky" },
+  "adversarial":      { emoji: "🔨", name: "QA-разбор" },
+  "paranoid":         { emoji: "🔎", name: "Paranoid" },
+};
+
+// Redis SET с явным TTL (отличается от redisSet — нужен для pinned)
+async function redisSetEx(key, value, ttlSec) {
+  if (!REDIS_URL) return;
+  const v = encodeURIComponent(JSON.stringify(value));
+  await fetch(`${REDIS_URL}/SET/${encodeURIComponent(key)}/${v}/EX/${ttlSec}`, {
+    headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
+  });
+}
+
+app.post("/api/pin-agent", async (req, res) => {
+  try {
+    const { chatId, agentId } = req.body;
+    if (!chatId || !agentId) return res.status(400).json({ error: "chatId and agentId required" });
+    const meta = AGENT_META[agentId];
+    if (!meta) return res.status(400).json({ error: `Unknown agent: ${agentId}` });
+
+    // Пишем в Redis под ключом который читает бот (pinned:<chatId>) с TTL 7 дней
+    await redisSetEx(`pinned:${chatId}`, agentId, 86400 * 7);
+
+    // Шлём приветствие через Bot API чтобы юзер увидел подтверждение в чате
+    const message = `${meta.emoji} *${meta.name}* подключён\n\nПиши задачу — отвечаю как ${meta.name}.\nСменить агента — открой Mini App.\nОтключить — /unpin или /new.`;
+    await fetch(
+      `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: "Markdown" }),
+      }
+    ).catch(() => {});
+
+    res.json({ ok: true, agent: meta.name });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── Telegram send-tg ────────────────────────────────────────────────────────
 app.post("/api/send-tg", async (req, res) => {
   try {

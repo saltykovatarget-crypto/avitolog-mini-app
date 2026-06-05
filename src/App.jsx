@@ -158,6 +158,66 @@ const PLATFORMS = [
   { id: "tg", name: "Telegram", color: "#8B5CF6", format: "1280×720px (горизонтальный)", prompt: "" },
 ];
 
+// Все 19 агентов сгруппированы по типу задачи. id = ключ AGENTS в bot index.js
+const AGENT_CATEGORIES = [
+  {
+    title: "📝 КОНТЕНТ",
+    agents: [
+      { id: "smm",          emoji: "✍️", name: "SMM",          desc: "Пишет посты в Telegram" },
+      { id: "editor",       emoji: "📝", name: "Редактор",     desc: "Чистит и улучшает текст" },
+      { id: "reels-pro",    emoji: "🎬", name: "Reels Pro",    desc: "Сценарии с таймкодами" },
+      { id: "case-writer",  emoji: "📋", name: "Кейс",         desc: "Интервью по кейсу за 10 шагов" },
+      { id: "scriptwriter", emoji: "🎥", name: "Сценарист",    desc: "Базовый сценарий Reels" },
+    ]
+  },
+  {
+    title: "🚀 ПРОДУКТ И ПРОДАЖИ",
+    agents: [
+      { id: "product-marketer", emoji: "🚀", name: "Продукт-маркетолог", desc: "Лендинг, тарифы, оффер" },
+      { id: "sales",            emoji: "💰", name: "Продажник",          desc: "Скрипты, возражения" },
+      { id: "lead-magnet",      emoji: "🧲", name: "Лид-магниты",        desc: "Гайды, чек-листы для email" },
+      { id: "onboarding",       emoji: "🎯", name: "Онбординг",          desc: "Цепочка триал → платный" },
+      { id: "visual",           emoji: "🎨", name: "Визуал",             desc: "Промпты обложек, ТЗ дизайну" },
+    ]
+  },
+  {
+    title: "🔍 SEO И АНАЛИТИКА",
+    agents: [
+      { id: "seo",              emoji: "🔍", name: "SEO",              desc: "Статьи для Дзен, AI-цитируемость" },
+      { id: "analyst",          emoji: "📊", name: "Аналитик",         desc: "Подбор тем по запросам" },
+      { id: "content-director", emoji: "🗓", name: "Контент-директор", desc: "План недели, разбор постов" },
+      { id: "competitor",       emoji: "🕵️", name: "Разведчик",        desc: "Анализ конкурентов" },
+    ]
+  },
+  {
+    title: "💡 ПОДДЕРЖКА",
+    agents: [
+      { id: "ideas",       emoji: "💡", name: "Заметки",       desc: "Работает с твоими идеями" },
+      { id: "community",   emoji: "💬", name: "Комьюнити",     desc: "Ответы на коммент / личку" },
+      { id: "office-hours",emoji: "🎓", name: "Office Hours",  desc: "Валидация идеи / питч" },
+    ]
+  },
+  {
+    title: "⭐️ ДОВЕДЕНИЕ ДО 10/10",
+    agents: [
+      { id: "chesky",      emoji: "⭐️", name: "Chesky",       desc: "Улучшает текст до 10-звёздной версии" },
+      { id: "adversarial", emoji: "🔨", name: "QA-разбор",    desc: "Жёстко ломает текст / идею" },
+      { id: "paranoid",    emoji: "🔎", name: "Paranoid",     desc: "Проверка логики и допущений" },
+    ]
+  },
+];
+
+// Открывает бот с deep-link для активации агента, закрывает Mini App
+function openAgentInBot(agentId) {
+  const link = `https://t.me/avitolog_coach_bot?start=agent_${agentId}`;
+  if (window.Telegram?.WebApp) {
+    window.Telegram.WebApp.openTelegramLink(link);
+    setTimeout(() => window.Telegram?.WebApp?.close?.(), 300);
+  } else {
+    window.open(link, "_blank");
+  }
+}
+
 const VISUAL_SYSTEM = `Ты — визуальный продюсер Валерии Салтыковой (AI Авитолог PRO). Брендбук: фиолетовый #8B5CF6, тёмно-синий фон #0D0D14, белый текст. Стиль: современный, минималистичный, технологичный. Логотип: «AI Авитолог PRO». Персонаж: молодая женщина-эксперт, деловой стиль, уверенная. На основе поста сгенерируй ДВА блока без вступлений:
 
 БЛОК 1 — ПРОМПТ ДЛЯ GPT/DALL-E:
@@ -478,8 +538,8 @@ export default function App() {
       </div>
       {/* Tabs — белая карточка с активной фиолетовой вкладкой */}
       <div style={{display:"flex",gap:2,marginBottom:16,background:CARD,padding:4,borderRadius:14,boxShadow:"0 2px 12px rgba(17,12,48,0.08)"}}>
-        {[{id:"today",label:"Сегодня"},{id:"week",label:"Вся неделя"},{id:"plan",label:"📅 План"}].map((v) => (
-          <button key={v.id} onClick={() => { setView(v.id); setPlanSaved(false); }} style={{flex:1,padding:"8px 4px",background:view===v.id?BRAND:"transparent",color:view===v.id?"white":MUTED,border:"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer",transition:"all 0.2s",boxShadow:view===v.id?"0 4px 12px rgba(139,92,246,0.35)":"none"}}>
+        {[{id:"today",label:"Сегодня"},{id:"agents",label:"🤖 Агенты"},{id:"week",label:"Неделя"},{id:"plan",label:"📅 План"}].map((v) => (
+          <button key={v.id} onClick={() => { setView(v.id); setPlanSaved(false); }} style={{flex:1,padding:"8px 4px",background:view===v.id?BRAND:"transparent",color:view===v.id?"white":MUTED,border:"none",borderRadius:10,fontSize:11,fontWeight:700,cursor:"pointer",transition:"all 0.2s",boxShadow:view===v.id?"0 4px 12px rgba(139,92,246,0.35)":"none"}}>
             {v.label}
           </button>
         ))}
@@ -504,6 +564,36 @@ export default function App() {
           );
         })}
       </div>
+
+      {view === "agents" && (
+        <div style={{animation:"fadeUp 0.3s ease"}}>
+          <div style={{fontSize:11,letterSpacing:1.5,color:MUTED,fontWeight:700,marginBottom:8}}>ВЫБЕРИ АГЕНТА</div>
+          <div style={{fontSize:13,color:MUTED,marginBottom:16,lineHeight:1.5}}>Тыкни — откроется бот с подключённым агентом. Пиши задачу, отвечает в этой роли пока не сменишь.</div>
+
+          {AGENT_CATEGORIES.map((cat) => (
+            <div key={cat.title} style={{marginBottom:18}}>
+              <div style={{fontSize:10,letterSpacing:2,color:BRAND,fontWeight:700,marginBottom:8}}>{cat.title}</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                {cat.agents.map((a) => (
+                  <button key={a.id} onClick={() => openAgentInBot(a.id)}
+                    style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:4,padding:"12px 14px",background:CARD,border:`1px solid ${BORDER}`,borderRadius:14,cursor:"pointer",textAlign:"left",transition:"transform 0.1s",boxShadow:"0 2px 8px rgba(17,12,48,0.04)"}}
+                    onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.97)"}
+                    onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}>
+                    <span style={{fontSize:22}}>{a.emoji}</span>
+                    <span style={{fontSize:13,fontWeight:700,color:TEXT}}>{a.name}</span>
+                    <span style={{fontSize:11,color:MUTED,lineHeight:1.35}}>{a.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <div style={{padding:"12px 14px",background:DARK,borderRadius:12,marginTop:12,fontSize:12,color:MUTED,lineHeight:1.5}}>
+            💡 Чтобы агент отвечал в стандартном режиме (бот сам выберет роль) — напиши в чате <b>/unpin</b>
+          </div>
+        </div>
+      )}
 
       {view === "week" && (
         <div style={{animation:"fadeUp 0.3s ease"}}>

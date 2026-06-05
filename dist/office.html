@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Маркетинг-отдел Валерии — офис</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    background: linear-gradient(180deg, #f4f1ea 0%, #e8e2d4 100%);
+    color: #2a2a2a;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .sub { color: #888; font-size: 13px; margin-bottom: 16px; }
+  .live { color: #2a8a4a; font-weight: 600; }
+  .stale { color: #d62; font-weight: 600; }
+
+  .office {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+    height: 760px;
+    margin: 0 auto;
+    background: #fffdf7;
+    border: 2px solid #2a2a2a;
+    border-radius: 12px;
+    box-shadow: 6px 6px 0 #2a2a2a;
+    overflow: hidden;
+  }
+
+  .room {
+    position: absolute;
+    border: 1.5px dashed #c4b89a;
+    border-radius: 8px;
+    padding: 28px 12px 12px;
+    background: rgba(255,255,255,0.4);
+  }
+  .room-label {
+    position: absolute; top: 8px; left: 12px;
+    font-size: 11px; font-weight: 700; color: #8a7b56;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  /* 3 столбца × 2 ряда */
+  #room-office     { left: 1.5%; top: 1.5%;  width: 31%;   height: 30%; background: #fff8e1; }
+  #room-content    { left: 34%;  top: 1.5%;  width: 31%;   height: 47%; background: #e8f5e9; }
+  #room-seo        { left: 67%;  top: 1.5%;  width: 31.5%; height: 30%; background: #e3f2fd; }
+  #room-strategy   { left: 1.5%; top: 33%;   width: 31%;   height: 35%; background: #f3e5f5; }
+  #room-studio     { left: 34%;  top: 50%;   width: 31%;   height: 30%; background: #ffe0e6; }
+  #room-sales      { left: 67%;  top: 33%;   width: 31.5%; height: 35%; background: #fff1e0; }
+
+  /* нижний пояс — резерв для overflow */
+  #room-office  .room-label::after,
+  #room-content .room-label::after { content: ""; }
+
+  .person {
+    position: absolute;
+    width: 78px;
+    transition: left 1s ease, top 1s ease;
+    z-index: 10;
+  }
+  .person .body { width: 36px; height: 50px; margin: 0 auto; position: relative; }
+  .person .head {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: #ffd9a8;
+    border: 2px solid #2a2a2a;
+    margin: 0 auto;
+    position: relative;
+  }
+  .person .head::before, .person .head::after {
+    content: ""; position: absolute; top: 9px;
+    width: 3px; height: 3px; background: #2a2a2a; border-radius: 50%;
+  }
+  .person .head::before { left: 6px; }
+  .person .head::after  { right: 6px; }
+  .person .torso {
+    width: 36px; height: 22px;
+    margin: -2px auto 0;
+    border: 2px solid #2a2a2a;
+    border-radius: 6px 6px 2px 2px;
+    background: #4d9fff;
+  }
+  /* Цвет торса по агенту */
+  .person[data-name="Тим"] .torso              { background: #ffb84d; }
+  .person[data-name="SEO"] .torso              { background: #4d9fff; }
+  .person[data-name="Редактор"] .torso         { background: #b07cff; }
+  .person[data-name="SMM"] .torso              { background: #5fcf80; }
+  .person[data-name="Сценарист"] .torso        { background: #2bb673; }
+  .person[data-name="Контент-директор"] .torso { background: #6dcdaf; }
+  .person[data-name="Заметки"] .torso          { background: #ffd54f; }
+  .person[data-name="Аналитик"] .torso         { background: #ff7a9c; }
+  .person[data-name="Разведчик"] .torso        { background: #2b8db6; }
+  .person[data-name="Продукт-маркетолог"] .torso{ background: #ff9a3c; }
+  .person[data-name="Продажник"] .torso        { background: #e85d75; }
+  .person[data-name="Онбординг"] .torso        { background: #ffb060; }
+  .person[data-name="Лид-магниты"] .torso      { background: #ffc94d; }
+  .person[data-name="Комьюнити"] .torso        { background: #ff8fa3; }
+  .person[data-name="Визуал"] .torso           { background: #c87cff; }
+  .person[data-name="Office Hours"] .torso     { background: #9b8cff; }
+  .person[data-name="Chesky"] .torso           { background: #ffd06b; }
+  .person[data-name="Adversarial"] .torso      { background: #6b6b6b; }
+  .person[data-name="Paranoid"] .torso         { background: #5e9b6b; }
+
+  .person .name {
+    text-align: center; font-size: 10.5px; font-weight: 600; margin-top: 3px;
+    white-space: nowrap;
+  }
+  .person .role { text-align: center; font-size: 9px; color: #888; }
+
+  .person.working .body { animation: bounce 0.55s infinite alternate; }
+  @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-3px); } }
+
+  .status-dot {
+    position: absolute;
+    top: -2px; right: 6px;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    border: 2px solid #2a2a2a;
+    background: #ccc;
+  }
+  .status-idle      .status-dot { background: #ccc; }
+  .status-working   .status-dot { background: #5fcf80; animation: pulse 1s infinite; }
+  .status-thinking  .status-dot { background: #ffd54f; animation: pulse 1s infinite; }
+  .status-talking   .status-dot { background: #4d9fff; animation: pulse 1s infinite; }
+  .status-delegating .status-dot { background: #ff7043; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.3); } }
+
+  .bubble {
+    position: absolute;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #fff;
+    border: 2px solid #2a2a2a;
+    border-radius: 10px;
+    padding: 5px 9px;
+    font-size: 10.5px;
+    white-space: nowrap;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 2px 2px 0 #2a2a2a;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 50;
+  }
+  .person.has-task .bubble { opacity: 1; }
+  .bubble::after {
+    content: "";
+    position: absolute;
+    bottom: -8px; left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid #2a2a2a;
+  }
+
+  .legend {
+    max-width: 1200px;
+    margin: 16px auto 0;
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: #555;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i {
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 1.5px solid #2a2a2a; display: inline-block;
+  }
+
+  .controls {
+    max-width: 1200px;
+    margin: 20px auto 0;
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .controls button {
+    border: 2px solid #2a2a2a;
+    background: #fff;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 #2a2a2a;
+  }
+  .controls button:hover { background: #fff8e1; }
+  .controls button:active { transform: translate(2px,2px); box-shadow: none; }
+
+  .hint {
+    max-width: 1200px; margin: 14px auto 0;
+    font-size: 12px; color: #777; line-height: 1.5;
+  }
+  .hint code {
+    background: #2a2a2a; color: #fff; padding: 1px 6px; border-radius: 4px;
+    font-family: ui-monospace, SF Mono, Menlo, monospace; font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+<h1>🏢 Маркетинг-отдел Валерии</h1>
+<div class="sub">
+  <span id="conn-status" class="stale">🔌 нет связи с ботом</span>
+  &nbsp;·&nbsp; обновление каждые 1.5 сек
+  &nbsp;·&nbsp; <span id="last-update"></span>
+</div>
+
+<div class="office">
+  <div class="room" id="room-office"><div class="room-label">Кабинет Тима</div></div>
+  <div class="room" id="room-content"><div class="room-label">Контент-студия</div></div>
+  <div class="room" id="room-seo"><div class="room-label">SEO / Аналитика</div></div>
+  <div class="room" id="room-strategy"><div class="room-label">Стратегия / валидаторы</div></div>
+  <div class="room" id="room-studio"><div class="room-label">Community / Визуал</div></div>
+  <div class="room" id="room-sales"><div class="room-label">Продукт / Продажи</div></div>
+</div>
+
+<div class="legend">
+  <span><i style="background:#ccc"></i> idle</span>
+  <span><i style="background:#5fcf80"></i> работает</span>
+  <span><i style="background:#ffd54f"></i> думает</span>
+  <span><i style="background:#4d9fff"></i> говорит</span>
+  <span><i style="background:#ff7043"></i> делегирует</span>
+</div>
+
+<div class="controls">
+  <button onclick="demo()">▶ Демо: загруженный день</button>
+  <button onclick="poll(true)">🔄 Обновить сейчас</button>
+</div>
+
+<div class="hint">
+  Открой Telegram → напиши любому агенту («напиши пост про…», «сценарий reels про…», «Тим, статью под ключ про…») → следи здесь, как они работают.<br>
+  Если статус «нет связи» — запусти бот: <code>cd ~/Desktop/marketing-coach/tg-agent-team && node index.js</code>
+</div>
+
+<script>
+// Дефолтная команда (показываем сразу, пока бот не подключен)
+const TEAM = [
+  // Кабинет
+  { name:"Тим", emoji:"🎩", role:"Зам", room:"office" },
+  // Контент
+  { name:"SMM", emoji:"✍️", role:"Посты", room:"content" },
+  { name:"Редактор", emoji:"📝", role:"Стиль", room:"content" },
+  { name:"Сценарист", emoji:"🎬", role:"Reels", room:"content" },
+  { name:"Контент-директор", emoji:"🗓", role:"План", room:"content" },
+  { name:"Заметки", emoji:"💡", role:"Идеи", room:"content" },
+  // SEO
+  { name:"SEO", emoji:"🔍", role:"Статьи", room:"seo" },
+  { name:"Аналитик", emoji:"📊", role:"Темы", room:"seo" },
+  { name:"Разведчик", emoji:"🕵️", role:"Конкуренты", room:"seo" },
+  // Стратегия
+  { name:"Office Hours", emoji:"🎓", role:"Валидация", room:"strategy" },
+  { name:"Chesky", emoji:"⭐️", role:"10 звёзд", room:"strategy" },
+  { name:"Adversarial", emoji:"🔨", role:"QA", room:"strategy" },
+  { name:"Paranoid", emoji:"🔎", role:"Логика", room:"strategy" },
+  // Studio (Community/Визуал)
+  { name:"Комьюнити", emoji:"💬", role:"Чат", room:"studio" },
+  { name:"Визуал", emoji:"🎨", role:"Обложки", room:"studio" },
+  // Sales
+  { name:"Продукт-маркетолог", emoji:"🚀", role:"Лендинг", room:"sales" },
+  { name:"Продажник", emoji:"💰", role:"Офферы", room:"sales" },
+  { name:"Онбординг", emoji:"🎯", role:"Триал", room:"sales" },
+  { name:"Лид-магниты", emoji:"🧲", role:"Гайды", room:"sales" },
+].map(a => ({ ...a, status:"idle", task:"" }));
+
+function placeInRoom(personEl, roomId) {
+  const room = document.getElementById(roomId);
+  if (!room) return;
+  const rRect = room.getBoundingClientRect();
+  const oRect = document.querySelector('.office').getBoundingClientRect();
+  const padX = 14, padY = 36;
+  // стабильная позиция на основе имени, чтобы не "телепортировались"
+  const name = personEl.dataset.name;
+  const h = [...name].reduce((a,c) => a + c.charCodeAt(0), 0);
+  const w = Math.max(1, rRect.width - 90 - padX*2);
+  const hgt = Math.max(1, rRect.height - 95 - padY*2);
+  const x = rRect.left - oRect.left + padX + ((h * 71) % w);
+  const y = rRect.top  - oRect.top  + padY + ((h * 53) % hgt);
+  personEl.style.left = x + 'px';
+  personEl.style.top  = y + 'px';
+}
+
+function ensurePerson(p) {
+  let el = document.querySelector('.person[data-name="'+p.name+'"]');
+  if (el) return el;
+  el = document.createElement('div');
+  el.className = 'person';
+  el.dataset.name = p.name;
+  el.innerHTML = `
+    <div class="body">
+      <div class="head"><span class="status-dot"></span></div>
+      <div class="torso"></div>
+    </div>
+    <div class="name">${p.emoji || ''} ${p.name}</div>
+    <div class="role"></div>
+    <div class="bubble"></div>
+  `;
+  document.querySelector('.office').appendChild(el);
+  placeInRoom(el, 'room-' + (p.room || 'office'));
+  return el;
+}
+
+function render(state) {
+  state.forEach(p => {
+    const el = ensurePerson(p);
+    el.className = el.className.replace(/status-\w+/g, '').trim();
+    el.classList.add('status-' + (p.status || 'idle'));
+    el.classList.toggle('working', p.status === 'working');
+    el.classList.toggle('has-task', !!p.task);
+    if (p.room) placeInRoom(el, 'room-' + p.room);
+    el.querySelector('.role').textContent = p.role || '';
+    el.querySelector('.bubble').textContent = p.task || '';
+  });
+}
+
+async function poll(force) {
+  try {
+    const r = await fetch('/api/status', { cache: 'no-store' });
+    if (!r.ok) throw new Error('http ' + r.status);
+    const data = await r.json();
+    if (Array.isArray(data) && data.length) {
+      render(data);
+      const dot = document.getElementById('conn-status');
+      dot.textContent = '🟢 связан с ботом';
+      dot.className = 'live';
+      document.getElementById('last-update').textContent =
+        'обновлено ' + new Date().toLocaleTimeString('ru-RU');
+    } else if (force) {
+      alert('Бот ещё не запускал ни одну задачу — стейт пуст.');
+    }
+  } catch (e) {
+    const dot = document.getElementById('conn-status');
+    dot.textContent = '🔌 нет связи с ботом';
+    dot.className = 'stale';
+  }
+}
+
+function demo() {
+  // 1) Тим раздаёт + первая волна
+  render(TEAM.map(a => {
+    if (a.name === "Тим")    return { ...a, status:"delegating", task:"статья + reels + пост — раздаю" };
+    if (a.name === "SEO")    return { ...a, status:"working", task:"пишу статью ~45 сек" };
+    if (a.name === "Сценарист") return { ...a, status:"working", task:"reels: 30 сек про CTR" };
+    if (a.name === "SMM")    return { ...a, status:"working", task:"пост для Telegram" };
+    return a;
+  }));
+  // 2) Через 4с: SEO готов, редактор в работе
+  setTimeout(() => render(TEAM.map(a => {
+    if (a.name === "Тим")    return { ...a, status:"thinking", task:"жду редактора" };
+    if (a.name === "Редактор") return { ...a, status:"working", task:"правлю статью под стиль" };
+    if (a.name === "Визуал")  return { ...a, status:"working", task:"обложка для reels" };
+    if (a.name === "Аналитик") return { ...a, status:"working", task:"темы на след. неделю" };
+    return a;
+  })), 4000);
+  // 3) Финал — Тим отчитывается
+  setTimeout(() => render(TEAM.map(a => {
+    if (a.name === "Тим") return { ...a, status:"talking", task:"всё готово — ссылки отправлены" };
+    return a;
+  })), 8000);
+  // 4) Idle
+  setTimeout(() => render(TEAM), 12000);
+}
+
+render(TEAM);
+poll();
+setInterval(poll, 1500);
+</script>
+
+</body>
+</html>

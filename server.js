@@ -2,10 +2,23 @@ import express from "express";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { createRequire } from "module";
+import { readFileSync, existsSync } from "fs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(express.json());
+
+// ─── Office status (читаем state.json от tg-agent-team) ───────────────────────
+const STATE_FILE = join(__dirname, "tg-agent-team", "state.json");
+app.get("/api/status", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  if (!existsSync(STATE_FILE)) return res.json([]);
+  try {
+    res.json(JSON.parse(readFileSync(STATE_FILE, "utf8")));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const REDIS_URL     = process.env.UPSTASH_REDIS_REST_URL;
